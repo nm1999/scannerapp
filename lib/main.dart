@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'dart:io';
+
 void main() {
   runApp(const MyApp());
 }
@@ -33,6 +34,12 @@ class _NamePickerPageState extends State<NamePickerPage> {
   File? _pickedImage;
   String _extractedName = 'No name extracted yet.';
   bool _isProcessing = false;
+  bool isValueFound = false;
+  bool isFirstNameFound = false;
+  bool ninFound = false;
+  String surname = "";
+  String firstname = "";
+  String nin = "";
 
   // Function to handle picking an image from the gallery or camera and processing it.
   Future<void> _pickImageAndProcess() async {
@@ -43,36 +50,74 @@ class _NamePickerPageState extends State<NamePickerPage> {
 
     try {
       // Step 1: Pick an image using ImagePicker.
-      final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-      
+      final pickedFile = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+      );
+
       if (pickedFile != null) {
         _pickedImage = File(pickedFile.path);
-      
-      // Step 2: Use Google ML Kit for Text Recognition (OCR).
+
+        // Step 2: Use Google ML Kit for Text Recognition (OCR).
         final inputImage = InputImage.fromFile(_pickedImage!);
         final textRecognizer = TextRecognizer();
-        final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
-  
+        final RecognizedText recognizedText = await textRecognizer.processImage(
+          inputImage,
+        );
+
         String extractedText = '';
+        final RegExp ninRegex = RegExp(r'^[A-Z0-9]{14}$');
         for (TextBlock block in recognizedText.blocks) {
           for (TextLine line in block.lines) {
-            extractedText += '${line.text} ';
+            extractedText += '${line.text} \n';
+            if (isValueFound) {
+              setState(() {
+                surname = line.text;
+                isValueFound = false;
+              });
+            }
+
+            if (isFirstNameFound) {
+              setState(() {
+                firstname = line.text;
+                isFirstNameFound = false;
+              });
+            }
+
+            if (ninRegex.hasMatch(line.text) && !ninFound) {
+              setState(() {
+                nin = line.text;
+                ninFound = true;
+              });
+            }
+
+            if (line.text.contains('SURNAME')) {
+              setState(() {
+                isValueFound = true;
+              });
+            }
+
+            if (line.text.contains("GIVEN NAME")) {
+              setState(() {
+                isFirstNameFound = true;
+              });
+            }
           }
         }
 
-      _extractedName = extractedText.trim().isNotEmpty
+        _extractedName = extractedText.trim().isNotEmpty
             ? 'Extracted Text:\n$extractedText'
-             : 'No text found.';
-      //
-       await textRecognizer.close();
+            : 'No text found.';
+        //
+
+        print(extractedText);
+        await textRecognizer.close();
       } else {
         _extractedName = 'No image selected.';
       }
-      
-      // Placeholder logic for demonstration
-      await Future.delayed(const Duration(seconds: 2));
-      _extractedName = 'Jane Doe';
-      
+
+      // // Placeholder logic for demonstration
+      // await Future.delayed(const Duration(seconds: 2));
+      // _extractedName = 'Jane Doe';
     } catch (e) {
       _extractedName = 'Error: $e';
     } finally {
@@ -91,7 +136,7 @@ class _NamePickerPageState extends State<NamePickerPage> {
         backgroundColor: Colors.blueAccent,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),flu
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -123,10 +168,7 @@ class _NamePickerPageState extends State<NamePickerPage> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.file(
-                      _pickedImage!,
-                      fit: BoxFit.contain,
-                    ),
+                    child: Image.file(_pickedImage!, fit: BoxFit.contain),
                   ),
                 ),
               ),
@@ -164,14 +206,17 @@ class _NamePickerPageState extends State<NamePickerPage> {
                       ),
                     ),
                     const SizedBox(height: 8.0),
-                    Text(
-                      _extractedName,
-                      style: const TextStyle(
-                        fontSize: 24.0,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
+                    Text("Surname : ${surname}"),
+                    Text("Firstname : ${firstname}"),
+                    Text("NIN : ${nin}"),
+                    // Text(
+                    //   _extractedName,
+                    //   style: const TextStyle(
+                    //     fontSize: 12.0,
+                    //     fontWeight: FontWeight.w600,
+                    //     color: Colors.black87,
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

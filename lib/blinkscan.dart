@@ -1,4 +1,5 @@
-import 'package:blinkid_flutter/blinkid_flutter.dart';
+// import 'package:blinkid_flutter/blinkid_flutter.dart';
+import 'package:blinkid_flutter/microblink_scanner.dart';
 import 'package:flutter/material.dart';
 
 class BlinkScan extends StatefulWidget {
